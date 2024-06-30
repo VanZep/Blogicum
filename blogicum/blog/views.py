@@ -13,9 +13,9 @@ from .mixins import (
     CommentCreateUpdateDeleteMixin
 )
 from .utils import (
-    get_post_list_with_filter,
-    get_post_list_with_filter_annotate_orderby,
-    get_post_list_with_annotate_orderby
+    add_select_related_to_queryset,
+    add_filter_to_queryset,
+    add_annotate_and_orderby_to_queryset
 )
 from .constants import NUMBER_OF_POSTS
 
@@ -27,8 +27,16 @@ class PostListView(ListView):
 
     model = Post
     template_name = 'blog/index.html'
-    queryset = get_post_list_with_filter_annotate_orderby(Post.objects)
     paginate_by = NUMBER_OF_POSTS
+
+    def get_queryset(self):
+        return add_select_related_to_queryset(
+            add_filter_to_queryset(
+                add_annotate_and_orderby_to_queryset(
+                    self.model.objects
+                )
+            )
+        )
 
 
 class PostDetailView(DetailView):
@@ -40,13 +48,15 @@ class PostDetailView(DetailView):
 
     def get_object(self, queryset=None):
         post = get_object_or_404(
-            self.model,
+            add_select_related_to_queryset(self.model.objects),
             pk=self.kwargs.get(self.pk_url_kwarg)
         )
         if post.author == self.request.user:
             return post
         return get_object_or_404(
-            get_post_list_with_filter(Post.objects),
+            add_select_related_to_queryset(
+                add_filter_to_queryset(self.model.objects)
+            ),
             pk=self.kwargs.get(self.pk_url_kwarg)
         )
 
@@ -94,7 +104,7 @@ class PostDeleteView(
             **super().get_context_data(**kwargs),
             form=PostForm(
                 instance=get_object_or_404(
-                    Post,
+                    self.model,
                     pk=self.kwargs.get(self.pk_url_kwarg)
                 )
             )
@@ -112,7 +122,8 @@ class CommentCreateView(
 
     def dispatch(self, request, *args, **kwargs):
         self.post_obj = get_object_or_404(
-            Post, pk=kwargs.get(self.pk_url_kwarg)
+            Post,
+            pk=kwargs.get(self.pk_url_kwarg)
         )
         return super().dispatch(request, *args, **kwargs)
 
@@ -151,14 +162,16 @@ class CategoryPostsView(ListView):
 
     def get_object(self):
         return get_object_or_404(
-            Category,
+            self.model,
             is_published=True,
             slug=self.kwargs.get(self.slug_url_kwarg)
         )
 
     def get_queryset(self):
-        return get_post_list_with_filter_annotate_orderby(
-            self.get_object().posts
+        return add_select_related_to_queryset(
+            add_filter_to_queryset(
+                add_annotate_and_orderby_to_queryset(self.get_object().posts)
+            )
         )
 
     def get_context_data(self, **kwargs):
@@ -176,13 +189,22 @@ class ProfileListView(ListView):
     paginate_by = NUMBER_OF_POSTS
 
     def get_object(self):
-        return get_object_or_404(User, username=self.kwargs.get('username'))
+        return get_object_or_404(
+            self.model,
+            username=self.kwargs.get('username')
+        )
 
     def get_queryset(self):
-        posts = self.get_object().posts
-        if self.get_object() == self.request.user:
-            return get_post_list_with_annotate_orderby(posts)
-        return get_post_list_with_filter_annotate_orderby(posts)
+        user = self.get_object()
+        if user == self.request.user:
+            return add_select_related_to_queryset(
+                add_annotate_and_orderby_to_queryset(user.posts)
+            )
+        return add_select_related_to_queryset(
+            add_filter_to_queryset(
+                add_annotate_and_orderby_to_queryset(user.posts)
+            )
+        )
 
     def get_context_data(self, **kwargs):
         return dict(

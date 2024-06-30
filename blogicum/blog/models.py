@@ -54,6 +54,7 @@ class Post(TitleTextModel, PublishedCreatedModel):
     """Модель поста."""
 
     pub_date = models.DateTimeField(
+        db_index=True,
         verbose_name='Дата и время публикации',
         help_text='Если установить дату и время в будущем — '
         'можно делать отложенные публикации.'

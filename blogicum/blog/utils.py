@@ -1,36 +1,27 @@
-from django.utils import timezone
 from django.db.models import Count
+from django.utils import timezone
 
 
-def get_post_list(obj):
+def add_select_related_to_queryset(obj):
     """Функция получения списка постов."""
     return obj.select_related(
         'location', 'author', 'category'
     )
 
 
-def get_post_list_with_filter(obj):
+def add_filter_to_queryset(obj):
     """Функция получения списка постов с фильтрацией."""
-    return get_post_list(obj).filter(
+    return obj.filter(
         pub_date__lte=timezone.now(),
         is_published=True,
         category__is_published=True
     )
 
 
-def get_post_list_with_filter_annotate_orderby(obj):
+def add_annotate_and_orderby_to_queryset(obj):
     """Функция получения упорядоченного списка постов
     с фильтрацией и количеством комментариев.
     """
-    return get_post_list_with_filter(obj).annotate(
-        comment_count=Count('comments')
-    ).order_by('-pub_date')
-
-
-def get_post_list_with_annotate_orderby(obj):
-    """Функция получения упорядоченного списка постов
-    с количеством комментариев.
-    """
-    return get_post_list(obj).annotate(
+    return obj.annotate(
         comment_count=Count('comments')
     ).order_by('-pub_date')

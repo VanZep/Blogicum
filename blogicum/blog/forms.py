@@ -26,6 +26,6 @@ class CommentForm(forms.ModelForm):
 class RegistrationForm(UserCreationForm):
     """Форма на основе модели User для регистрации профиля."""
 
-    class Meta:
+    class Meta(UserCreationForm.Meta):
         model = User
         fields = ('first_name', 'last_name', 'username', 'email')
